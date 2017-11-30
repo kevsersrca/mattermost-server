@@ -13,6 +13,7 @@ import (
 	"os"
 	"path/filepath"
 	"strings"
+	"unicode/utf8"
 
 	l4g "github.com/alecthomas/log4go"
 
@@ -26,6 +27,10 @@ import (
 
 	"github.com/mattermost/mattermost-server/plugin"
 	"github.com/mattermost/mattermost-server/plugin/pluginenv"
+)
+
+const (
+	PLUGIN_MAX_ID_LENGTH = 200
 )
 
 func (a *App) initBuiltInPlugins() {
@@ -135,6 +140,10 @@ func (a *App) InstallPlugin(pluginFile io.Reader) (*model.Manifest, *model.AppEr
 	manifest, _, err := model.FindManifest(tmpPluginDir)
 	if err != nil {
 		return nil, model.NewAppError("InstallPlugin", "app.plugin.manifest.app_error", nil, err.Error(), http.StatusBadRequest)
+	}
+
+	if utf8.RuneCountInString(manifest.Id) > PLUGIN_MAX_ID_LENGTH {
+		return nil, model.NewAppError("InstallPlugin", "app.plugin.id_length.app_error", map[string]interface{}{"Max": PLUGIN_MAX_ID_LENGTH}, err.Error(), http.StatusBadRequest)
 	}
 
 	bundles, err := a.PluginEnv.Plugins()
